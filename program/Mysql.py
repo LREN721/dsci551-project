@@ -436,6 +436,83 @@ def cat(cmd):
         print("Value not found in file")
 
 
+def query(db, queries):
+    res = pd.DataFrame()
+    for sql in queries:
+        cursor = db.cursor()
+        cursor.execute(sql)
+        data = cursor.fetchall()
+        # print(data)
+        columnDes = cursor.description
+        # print(columnDes)
+        columnNames = [columnDes[i][0] for i in range(len(columnDes))]
+        # print(columnNames)
+        df = pd.DataFrame([list(i) for i in data], columns=columnNames)
+        # print(df)
+        res = pd.concat([res, df])
+    return res
+
+
+# Group by
+# res: [{key1: [val0, val1, val2...]}, {key2: [val0, val1, val2...]}...]
+def map(data, key, val):
+    res = dict()
+
+    for item in data:
+        # print(item[key])
+        if item[key] not in res:
+            res[item[key]] = []
+        res[item[key]].append(item[val])
+    return res
+
+
+def reduce(data, cmd, condition=None):
+    res = dict()
+
+    for k in data:
+        item = data[k]
+        result = 0
+        if cmd == 'count':
+            result = len(item)
+        elif cmd == 'avg':
+            result = sum(item) / len(item)
+        elif c == 'max':
+            result = max(item)
+        elif c == 'min':
+            result = min(item)
+        elif c == 'sum':
+            result = sum(item)
+
+        if condition is not None:
+            c = condition[0]
+            con_tmp = 0
+            if c == 'count':
+                con_tmp = len(item)
+            elif c == 'avg':
+                con_tmp = sum(item) / len(item)
+            elif c == 'max':
+                con_tmp = max(item)
+            elif c == 'min':
+                con_tmp = min(item)
+            elif c == 'sum':
+                con_tmp = sum(item)
+            c = condition[1]
+            v = condition[2]
+            if c == 'lt' and con_tmp < v:
+                res[k] = result
+            elif c == 'gt' and con_tmp > v:
+                res[k] = result
+            elif c == 'lte' and con_tmp <= v:
+                res[k] = result
+            elif c == 'gte' and con_tmp >= v:
+                res[k] = result
+            elif c == 'eq' and con_tmp == v:
+                res[k] = result
+        else:
+            res[k] = result
+    return res
+
+
 user = 'root'
 password = ''
 host = 'localhost'
@@ -455,3 +532,7 @@ meta_data = """SELECT *FROM METADATA;"""
 # result = readPartition(db, "case_id.csv", '"case_20","case_21"')
 # result = cat("/Users/ellachen/PycharmProjects/pythonProject/data/case_id.csv")
 # print(result)
+#
+# data = query(db, [meta_data])
+# get_data = map(data, "file_type", "")
+# print(get_data)
