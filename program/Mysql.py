@@ -424,7 +424,7 @@ def readPartition(db, file, partition):
             name = name.strip('"')
             data = 'SELECT *FROM '
             data = data + name + ";"
-            get_data = read_query(db, data)
+            get_data = query(db, data)
             return get_data
 
 
@@ -438,18 +438,17 @@ def cat(cmd):
 
 def query(db, queries):
     res = pd.DataFrame()
-    for sql in queries:
-        cursor = db.cursor()
-        cursor.execute(sql)
-        data = cursor.fetchall()
-        # print(data)
-        columnDes = cursor.description
-        # print(columnDes)
-        columnNames = [columnDes[i][0] for i in range(len(columnDes))]
-        # print(columnNames)
-        df = pd.DataFrame([list(i) for i in data], columns=columnNames)
-        # print(df)
-        res = pd.concat([res, df])
+    cursor = db.cursor()
+    cursor.execute(queries)
+    data = cursor.fetchall()
+    # print(data)
+    columnDes = cursor.description
+    # print(columnDes)
+    columnNames = [columnDes[i][0] for i in range(len(columnDes))]
+    # print(columnNames)
+    df = pd.DataFrame([list(i) for i in data], columns=columnNames)
+    # print(df)
+    res = pd.concat([res, df])
     return res
 
 
@@ -513,13 +512,45 @@ def reduce(data, cmd, condition=None):
     return res
 
 
+def SearchbyYear(db, year):
+    # location = getPartitionLocations(db, "collision.csv")
+    partition = ''
+    if year == "2020":
+        partition = "coll_20"
+    if year == "2021":
+        partition = "coll_21"
+    if year == "2022":
+        partition = "coll_22"
+    get_data = readPartition(db, "collision.csv", partition)
+    out_str = "The total number of collisions by " + year + " is: " + str(len(get_data))
+    return out_str
+
+
+def AnalyGender(db):
+    location = getPartitionLocations(db, "victims.csv")
+    l = location.strip().split(",")
+    l = l[-1]
+    get_data = readPartition(db, "victims.csv", l)
+    m_len = 0
+    f_len = 0
+    for i, row in get_data.iterrows():
+        if row["victim_sex"] == "male":
+            m_len += 1
+        if row["victim_sex"] == "female":
+            f_len += 1
+    out_str = "The total number of male victim is " + str(m_len) + "\n"
+    out_str += "The total number of female victim is " + str(f_len) + "\n"
+    return out_str
+
+
 user = 'root'
 password = ''
 host = 'localhost'
 database = 'dsci551'
 db = connect_dataset(user, password, host, database)
 meta_data = """SELECT *FROM METADATA;"""
-
+put(db, "collision.csv", "/Users/ellachen/PycharmProjects/pythonProject/data/collision.csv")
+put(db, "victims.csv", "/Users/ellachen/PycharmProjects/pythonProject/data/victims.csv")
 # parent_data = """SELECT *FROM PARENT_CHILD;"""
 # source_data = """SELECT *FROM SOURCE;"""
 # metad = read_query(cnx, meta_data)
@@ -536,3 +567,17 @@ meta_data = """SELECT *FROM METADATA;"""
 # data = query(db, [meta_data])
 # get_data = map(data, "file_type", "")
 # print(get_data)
+
+
+print("Search Ideas:")
+print("Search the number of collisions by year")
+data = SearchbyYear(db, "2021")
+print(data)
+print()
+print("Analytices Ideas:")
+print("Which gender is more likely to meet the car accident?")
+a_data = AnalyGender(db)
+print(a_data)
+
+
+
